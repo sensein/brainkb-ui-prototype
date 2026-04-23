@@ -51,6 +51,22 @@ jobs:
 
       - run: npm ci
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build for visual tests (no base path)
+        env:
+          EXPORT: "true"
+        run: npm run build
+
+      - name: Visual tests (Argos uploads the diff)
+        env:
+          ARGOS_TOKEN: ${{ secrets.ARGOS_TOKEN }}
+        run: npm run test:visual
+
+      - name: Reset export output before deploy build
+        run: rm -rf out
+
       - name: Build static export
         env:
           EXPORT: "true"
@@ -81,7 +97,8 @@ jobs:
               : `https://${owner}.github.io/${repo}`;
             const url = `${host}/pr-${prNum}/`;
             const marker = '<!-- pages-preview-url -->';
-            const body = `${marker}\n🔎 **Pages preview:** ${url}\n\n_Built from ${context.sha.slice(0, 7)} · updates on each push to this PR._`;
+            const argos = `https://app.argos-ci.com/${owner}/${repo}/pulls/${prNum}`;
+            const body = `${marker}\n🔎 **Pages preview:** ${url}\n🔀 **UI diff (Argos):** ${argos}\n\n_Built from ${context.sha.slice(0, 7)} · updates on each push to this PR._`;
             const { data: comments } = await github.rest.issues.listComments({
               owner, repo, issue_number: prNum,
             });
